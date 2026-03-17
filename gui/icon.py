@@ -136,8 +136,11 @@ class DraggableIcon:
             self.start_y = snap_y
 
     def delete_self(self):
+        name = self.name
         self.manager.remove_icon(self)
         self.frame.destroy()
+        if hasattr(self.manager, "notifications"):
+            self.manager.notifications.show("Çöp Kutusu", f"'{name}' başarıyla silindi.", type="success")
 
     def show_trash_menu(self, event):
         menu = tk.Menu(self.root, tearoff=0)

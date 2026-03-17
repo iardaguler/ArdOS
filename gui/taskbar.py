@@ -1,6 +1,7 @@
 import tkinter as tk
 import time
 from .constants import COLORS, FONTS
+from .calendar_widget import CalendarWidget
 
 
 class Taskbar(tk.Frame):
@@ -26,8 +27,9 @@ class Taskbar(tk.Frame):
         btn.pack(side="left", padx=10, pady=7)
 
         # Saat
-        self.clock_lbl = tk.Label(self, text="00:00", bg=COLORS["taskbar"], fg=COLORS["text"], font=FONTS["clock"])
+        self.clock_lbl = tk.Label(self, text="00:00", bg=COLORS["taskbar"], fg=COLORS["text"], font=FONTS["clock"], cursor="hand2")
         self.clock_lbl.pack(side="right", padx=15)
+        self.clock_lbl.bind("<Button-1>", lambda e: CalendarWidget(self.master))
         self.update_clock()
 
     def update_clock(self):

@@ -10,12 +10,24 @@ from .icon import DraggableIcon
 from .terminal import TerminalApp
 from .filemanager import FileManagerApp
 from .editor import TextEditorApp
+from .calculator import CalculatorApp
+from .usermanager import UserManagerApp
+from .mediaplayer import MediaPlayerApp
+from .taskmanager import TaskManagerApp
+from .notification import NotificationManager
+from .weather_widget import WeatherWidget
+from .browser import BrowserApp
+from .ardstore import ArdStoreApp
 
 
 class DesktopManager:
     def __init__(self, root, kernel):
         self.root = root
         self.kernel = kernel
+        self.start_menu_frame = None
+        
+        # Bildirim Yöneticisi
+        self.notifications = NotificationManager(self.root)
 
         # Pencere Ayarları
         self.root.title("ArdOS Desktop Environment v3.1 (Professional)")
@@ -118,7 +130,11 @@ class DesktopManager:
         # Çöp Kutusu: Satır 4'ten 3'e alındı (Daha yukarı)
         DraggableIcon(self, "Çöp Kutusu", "🗑️", 0, 3, lambda: None, is_trash=True)
 
-        DraggableIcon(self, "İnternet", "🌐", 1, 0, lambda: messagebox.showinfo("Hata", "Ağ yok."))
+        DraggableIcon(self, "İnternet", "🌐", 1, 0, lambda: BrowserApp(self.root, self.kernel))
+        DraggableIcon(self, "Hava Durumu", "☀️", 1, 1, lambda: WeatherWidget(self.root))
+        
+        # Karşılama Bildirimi
+        self.root.after(1000, lambda: self.notifications.show("Sistem Hazır", f"Hoş geldin, {self.kernel.current_user}!", type="success"))
 
     # --- YÖNETİCİ FONKSİYONLARI ---
 
@@ -154,6 +170,15 @@ class DesktopManager:
 
     # --- UYGULAMALAR ---
 
+    def add_app_icon(self, name, icon_char, command):
+        """Dışarıdan (örn: ArdStore) yeni ikon eklemek için kullanılır"""
+        # Boş bir slot bul (Sütun 2'ye dizelim)
+        col = 2
+        row = len([i for i in self.icons if i.col == col])
+        
+        DraggableIcon(self, name, icon_char, col, row, command)
+        self.notifications.show("🛍️ ArdStore", f"'{name}' başarıyla kuruldu.", type="success")
+
     def open_terminal(self):
         TerminalApp(self.root, self.kernel)
 
@@ -161,4 +186,74 @@ class DesktopManager:
         FileManagerApp(self.root, self.kernel)
 
     def open_menu(self):
-        pass
+        """Başlat menüsünü açar veya kapatır"""
+        # Eğer zaten açıksa kapat
+        if hasattr(self, 'start_menu_frame') and self.start_menu_frame and self.start_menu_frame.winfo_exists():
+            self.start_menu_frame.destroy()
+            self.start_menu_frame = None
+            return
+
+        # Menü Çerçevesi
+        self.start_menu_frame = tk.Frame(self.root, bg=COLORS["taskbar"], highlightbackground=COLORS["highlight"], highlightthickness=1)
+        # Taskbar'ın hemen üstünde, sol köşede konumlandır (Dinamik Y pozisyonu)
+        self.start_menu_frame.place(x=5, y=self.root.winfo_height() - 350, width=220, height=300)
+
+        # Menü Başlığı
+        lbl_title = tk.Label(self.start_menu_frame, text="ArdOS Menu", bg=COLORS["highlight"], fg="black", font=("Segoe UI", 10, "bold"))
+        lbl_title.pack(fill="x", pady=(0, 10))
+
+        # Menü Seçenekleri (Uygulamalar ve Sistem)
+        options = [
+            ("⌨️ Terminal", self.open_terminal),
+            ("📝 Not Defteri", lambda: TextEditorApp(self.root, self.kernel)),
+            ("📁 Bilgisayarım", self.open_my_computer),
+            ("🌐 Web Tarayıcı", lambda: BrowserApp(self.root, self.kernel)),
+            ("☀️ Hava Durumu", lambda: WeatherWidget(self.root)),
+            ("🧮 Hesap Makinesi", lambda: CalculatorApp(self.root, self.kernel)),
+            ("👥 Kullanıcılar", lambda: UserManagerApp(self.root, self.kernel)),
+            ("🎵 Medya Oynatıcı", lambda: MediaPlayerApp(self.root, self.kernel)),
+            ("🛍️ ArdStore", lambda: ArdStoreApp(self.root, self.kernel, self)),
+            ("📊 Görev Yöneticisi", lambda: TaskManagerApp(self.root, self.kernel)),
+            ("⚙️ Ayarlar", self.open_settings),
+            ("⎯" * 20, None), # Ayırıcı
+            ("🔴 Sistemi Kapat", self.root.quit)
+        ]
+
+        for text, cmd in options:
+            if cmd:
+                # Menü butonlarını siyah yazı ve açık renk arka plan ile daha okunaklı yapıyoruz
+                btn = tk.Button(self.start_menu_frame, text=f" {text}", 
+                                command=lambda c=cmd: [c(), self.open_menu()], 
+                                bg=COLORS["highlight"], fg="black", relief="flat", anchor="w", padx=10,
+                                activebackground="white", activeforeground="black",
+                                font=("Segoe UI", 10, "bold"))
+                btn.pack(fill="x", pady=2, padx=5)
+            else:
+                # Ayırıcı çizgi ve metni
+                tk.Label(self.start_menu_frame, text=text, bg=COLORS["taskbar"], fg="white").pack(fill="x")
+
+    def open_settings(self):
+        """Masaüstü Arkaplan Ayarları"""
+        settings_win = tk.Toplevel(self.root)
+        settings_win.title("Sistem Ayarları")
+        settings_win.geometry("300x300")
+        settings_win.configure(bg=COLORS["bg"])
+
+        tk.Label(settings_win, text="Masaüstü Rengi Seç:", bg=COLORS["bg"], fg="white", font=("Segoe UI", 10, "bold")).pack(pady=15)
+        
+        # Farklı renk paletleri
+        themes = [
+            ("#2E3440", "Nord (Varsayılan)"),
+            ("#1e272e", "Deep Sea"),
+            ("#2c3e50", "Midnight"),
+            ("#1a1a1a", "Dark Black"),
+            ("#2d3436", "Carbon")
+        ]
+        
+        for code, name in themes:
+            # Butonları daha okunaklı yapıyoruz
+            btn = tk.Button(settings_win, text=name, bg=COLORS["highlight"], fg="black", relief="flat", padx=10,
+                      font=("Segoe UI", 9, "bold"),
+                      activebackground="white",
+                      command=lambda c=code: self.background.configure(bg=c))
+            btn.pack(fill="x", padx=40, pady=3)

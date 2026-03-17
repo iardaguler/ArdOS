@@ -14,6 +14,9 @@ class FileManagerApp:
         self.window.configure(bg=COLORS["bg"])  # Pencere arka planı koyu
 
         self.kernel = kernel
+        self.pid = self.kernel.register_process("Bilgisayarım")
+        self.window.protocol("WM_DELETE_WINDOW", self.on_close)
+
         self.current_path_var = tk.StringVar()
 
         # --- ÜST PANEL (Adres Çubuğu ve Butonlar) ---
@@ -51,6 +54,10 @@ class FileManagerApp:
 
         # İlk açılışta dosyaları listele
         self.refresh_view()
+
+    def on_close(self):
+        self.kernel.kill_process(self.pid)
+        self.window.destroy()
 
     def refresh_view(self):
         """Mevcut klasörün içeriğini ekrana çizer"""
@@ -104,13 +111,38 @@ class FileManagerApp:
 
             # Tıklama olaylarını bağla
             for w in [item_frame, lbl_icon, lbl_name]:
+                # Sol Tık: Klasörse gir, dosyaysa düzenle
                 w.bind("<Button-1>", lambda e, n=name, d=is_dir: self.on_item_click(n, d))
+                # Sağ Tık: Menü aç
+                w.bind("<Button-2>" if self.window.tk.call('tk', 'windowingsystem') == 'aqua' else "<Button-3>", 
+                       lambda e, n=name, d=is_dir: self.show_context_menu(e, n, d))
 
             # Izgara (Grid) düzeni hesaplama (Yan yana 5 ikon)
             col_idx += 1
             if col_idx > 4:
                 col_idx = 0
                 row_idx += 1
+
+    def show_context_menu(self, event, name, is_dir):
+        """Sağ tık menüsünü oluşturur ve gösterir"""
+        menu = tk.Menu(self.window, tearoff=0, bg=COLORS["taskbar"], fg=COLORS["text"], activebackground=COLORS["highlight"])
+        
+        if not is_dir:
+            menu.add_command(label="📝 Düzenle", command=lambda: TextEditorApp(self.window, self.kernel, name))
+        
+        menu.add_command(label="🗑️ Sil", command=lambda: self.delete_item(name))
+        menu.add_separator()
+        menu.add_command(label="ℹ️ Özellikler", command=lambda: messagebox.showinfo("Özellikler", f"Ad: {name}\nTür: {'Dizin' if is_dir else 'Dosya'}"))
+
+        # Menüyü farenin olduğu yerde göster
+        menu.tk_popup(event.x_root, event.y_root)
+
+    def delete_item(self, name):
+        """Kernel üzerinden silme işlemi yapar"""
+        if messagebox.askyesno("Onay", f"'{name}' silinecek. Emin misiniz?"):
+            res = self.kernel.execute_command(f"rm {name}")
+            self.refresh_view()
+            messagebox.showinfo("Bilgi", res)
 
     def on_item_click(self, name, is_dir):
         if is_dir:

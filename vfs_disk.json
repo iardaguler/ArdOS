@@ -1,0 +1,46 @@
+{
+    "name": "/",
+    "is_dir": true,
+    "owner": "root",
+    "permissions": "rw",
+    "content": null,
+    "created_at": "2026-03-18 02:32",
+    "children": {
+        "home": {
+            "name": "home",
+            "is_dir": true,
+            "owner": "root",
+            "permissions": "rw",
+            "content": null,
+            "created_at": "2026-03-18 02:32",
+            "children": {}
+        },
+        "bin": {
+            "name": "bin",
+            "is_dir": true,
+            "owner": "root",
+            "permissions": "rw",
+            "content": null,
+            "created_at": "2026-03-18 02:32",
+            "children": {}
+        },
+        "etc": {
+            "name": "etc",
+            "is_dir": true,
+            "owner": "root",
+            "permissions": "rw",
+            "content": null,
+            "created_at": "2026-03-18 02:32",
+            "children": {}
+        },
+        "arda.txt": {
+            "name": "arda.txt",
+            "is_dir": false,
+            "owner": "root",
+            "permissions": "rw",
+            "content": "selam",
+            "created_at": "2026-03-18 02:33",
+            "children": {}
+        }
+    }
+}
